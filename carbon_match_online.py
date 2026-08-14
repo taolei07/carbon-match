@@ -430,7 +430,9 @@ def render_player_column(target_is_p1):
         # --- 1. Hand Cards ---
         st.markdown(f"**🎒 {p_name}'s Hand Cards**")
         if hand:
-            h_cols = st.columns(len(hand) if len(hand) <= 4 else 4)
+            # 确保传递给 st.columns 的数字至少为 1，绝对不能为 0
+            cols_num = max(1, min(len(hand), 4))
+            h_cols = st.columns(cols_num)
             for h_idx, hcard in enumerate(hand):
                 with h_cols[h_idx % 4]:
                     st.markdown(
@@ -506,7 +508,9 @@ def render_player_column(target_is_p1):
                     st.info("👉 [Q Card Active] Click a card in opponent's staging area:")
 
         if staging:
-            st_cols = st.columns(len(staging) if len(staging) <= 4 else 4)
+            # 确保传递给 st.columns 的数字至少为 1，绝对不能为 0
+            cols_num = max(1, min(len(staging), 4))
+            st_cols = st.columns(cols_num)
             for idx, card in enumerate(staging):
                 with st_cols[idx % 4]:
                     st.markdown(
