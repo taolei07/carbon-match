@@ -1,4 +1,5 @@
 import random
+import streamlit as str_lit
 import streamlit as st
 from supabase import create_client, Client
 from streamlit_autorefresh import st_autorefresh
@@ -89,11 +90,6 @@ def add_log(state, msg):
 
 
 def check_game_over_and_settle(state):
-    """
-    结算触发条件：
-    1. 原条件：牌堆抽空，且双方手牌中都没有 J, A, Q, K, JOKER 战术牌。
-    2. 新增条件：牌堆抽空，且双方的暂存区（staging）都没有任何牌时，强制结算。
-    """
     if len(state["deck"]) == 0 and not state["game_over"]:
         p1_has_power = any(
             c[0] in ["J", "A", "Q", "K", "JOKER"] for c in state["p1_hand"]
@@ -102,7 +98,6 @@ def check_game_over_and_settle(state):
             c[0] in ["J", "A", "Q", "K", "JOKER"] for c in state["p2_hand"]
         )
         
-        # 新增条件判断：双方暂存区是否都为空
         both_staging_empty = (len(state["p1_staging"]) == 0) and (len(state["p2_staging"]) == 0)
 
         if (not p1_has_power and not p2_has_power) or both_staging_empty:
@@ -167,12 +162,10 @@ def check_auto_same_color_match(state, is_p1):
 
 
 def auto_joker_transfer(state, is_p1):
-    """抽到 JOKER 时自动触发：把最高分对子送给对方，并用 Session 弹窗提示。"""
     scoring = state["p1_scoring"] if is_p1 else state["p2_scoring"]
     p_name = "Player 1" if is_p1 else "Player 2"
     opp_name = "Player 2" if is_p1 else "Player 1"
 
-    # 使用 Streamlit 弹窗通知触发了 Joker
     st.balloons()
     st.toast(f"🃏 {p_name} drew JOKER! Chaos triggered!", icon="🃏")
 
@@ -315,6 +308,34 @@ if top4.button("🔄 Restart Game", use_container_width=True):
     save_game(room_code, initial_state())
     st.rerun()
 
+# ============================================================
+# Game Over Popup Banner (新增炫酷胜利弹窗效果字)
+# ============================================================
+if state["game_over"]:
+    p1_s = state["p1_score"]
+    p2_s = state["p2_score"]
+    if p1_s > p2_s:
+        winner_text = "Player 1"
+        winner_score = p1_s
+    elif p2_s > p1_s:
+        winner_text = "Player 2"
+        winner_score = p2_s
+    else:
+        winner_text = "Draw (Tie Game)"
+        winner_score = f"P1: {p1_s} / P2: {p2_s}"
+
+    st.markdown(
+        f"""
+        <div style="background: linear-gradient(135deg, #f12711, #f5af19); padding: 25px; border-radius: 15px; text-align: center; color: white; margin-bottom: 25px; box-shadow: 0 8px 16px rgba(0,0,0,0.3); animation: pulse 2s infinite;">
+            <h1 style="margin: 0; font-size: 36px; text-shadow: 2px 2px 4px rgba(0,0,0,0.4);">🏆 游戏结算 / GAME SETTLED 🏆</h1>
+            <p style="margin: 15px 0 0 0; font-size: 28px; font-weight: bold; text-shadow: 1px 1px 3px rgba(0,0,0,0.4);">
+                恭喜 <span style="color: #ffeaa7; text-decoration: underline;">{winner_text}</span> 以 <span style="color: #55efc4;">{winner_score} 分</span> 获得最终胜利！
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 st.markdown("---")
 
 # ============================================================
@@ -358,14 +379,12 @@ def render_player_column(target_is_p1):
                             add_log(state, f"{p_name} drew number card [{card[0]}-{card[1]}], entered staging area.")
                             check_auto_same_color_match(state, target_is_p1)
                         elif card[0] == "JOKER":
-                            # 抽到 Joker 时弹出提示弹窗通知
                             st.warning(f"🃏 {p_name} drew a JOKER card! Chaos effect triggered!")
                             auto_joker_transfer(state, target_is_p1)
                         else:
                             hand.append(card)
                             add_log(state, f"{p_name} drew tactical card [{card[0]}].")
                         
-                        # 每次抽完牌后检测是否满足结算条件
                         check_game_over_and_settle(state)
                         save_game(room_code, state)
                         st.rerun()
