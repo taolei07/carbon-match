@@ -84,7 +84,7 @@ def save_game(room_code, state):
 
 def add_log(state, msg):
   state["logs"].insert(0, msg)
-  if len(state["logs"]) > 200:
+  if len(state["logs"]) > 2000:
     state["logs"].pop()
 
 
